@@ -1,0 +1,19 @@
+# Etapa de construcción: Usa una imagen con Maven y Java 11
+FROM maven:3.9.6-openjdk-11 AS build
+WORKDIR /app
+# Copia los scripts del Maven Wrapper y la configuración
+COPY mvnw .
+COPY mvnw.cmd .
+COPY .mvn .mvn
+# Copia el pom.xml y descarga las dependencias para caché
+COPY pom.xml .
+RUN ./mvnw dependency:go-offline
+# Copia el código fuente y construye el JAR
+COPY src src
+RUN ./mvnw package -DskipTests
+# Etapa final: Imagen ligera con solo el JRE
+FROM openjdk:11-jre-slim
+WORKDIR /app
+COPY --from=build /app/target/final-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
